@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Шинэбаяр Даваасүрэн — LEGO 3D Танилцуулга</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;900&display=swap&subset=cyrillic" rel="stylesheet">
+<style>
+  :root { --accent: #e3000b; --text: #2b2b2b; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #87ceeb; color: var(--text); font-family: 'Exo 2', 'Courier New', sans-serif; overflow: hidden; }
+  #c { display: block; }
+
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: none; padding: 12px; z-index: 10;
+  }
+  #hud h1 {
+    font-weight: 900; font-size: clamp(16px, 3.4vw, 26px); letter-spacing: 5px;
+    color: #fff;
+    text-shadow: 0 2px 0 #c62828, 0 4px 8px rgba(0,0,0,.35);
+    background: #e3000b;
+    padding: 6px 22px; border-radius: 10px;
+    box-shadow: 0 4px 0 #9e0008, 0 8px 16px rgba(0,0,0,.25);
+  }
+  #chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 10px; font-size: 11px; }
+  .chip {
+    border: none; border-radius: 8px; padding: 4px 12px; opacity: .75;
+    background: #fff; color: #555; font-weight: 700; letter-spacing: 1px;
+    box-shadow: 0 3px 0 rgba(0,0,0,.18); transition: all .35s;
+  }
+  .chip.visited { opacity: 1; background: var(--chip-color); color: #fff; transform: translateY(-2px); }
+
+  #winBanner {
+    display: none; margin-top: 10px; color: #fff; font-size: 13px; font-weight: 700;
+    background: #ffa000; padding: 8px 18px; border-radius: 10px;
+    box-shadow: 0 4px 0 #c67600, 0 8px 16px rgba(0,0,0,.25);
+  }
+
+  #soundBtn {
+    position: fixed; top: 14px; right: 14px; z-index: 30;
+    background: #fff; border: none; border-radius: 50%;
+    width: 44px; height: 44px; font-size: 18px; cursor: pointer;
+    box-shadow: 0 3px 0 rgba(0,0,0,.2);
+  }
+
+  /* intro */
+  #intro {
+    position: fixed; inset: 0;
+    background: linear-gradient(180deg, #4fc3f7, #0288d1);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100; text-align: center; padding: 20px;
+  }
+  #intro h2 {
+    font-weight: 900; letter-spacing: 3px; margin-bottom: 18px; font-size: clamp(22px,5vw,40px);
+    color: #fff; text-shadow: 0 3px 0 #c62828, 0 6px 12px rgba(0,0,0,.3);
+    background: #e3000b; padding: 12px 30px; border-radius: 14px;
+    box-shadow: 0 6px 0 #9e0008, 0 12px 24px rgba(0,0,0,.3);
+    animation: floaty 3s ease-in-out infinite;
+  }
+  @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  #intro p { font-size: 15px; line-height: 1.9; color: #fff; max-width: 460px; text-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  #startBtn {
+    margin-top: 28px; background: #ffd500; color: #5d4400;
+    border: none; font-family: inherit; font-weight: 900; font-size: 17px; letter-spacing: 3px;
+    padding: 15px 46px; border-radius: 12px; cursor: pointer;
+    box-shadow: 0 6px 0 #c7a600, 0 12px 20px rgba(0,0,0,.25);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  #startBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #c7a600; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+  /* modal */
+  #overlay {
+    position: fixed; inset: 0; background: rgba(20,40,70,.55); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px;
+  }
+  #overlay.open { display: flex; }
+  #modal {
+    background: #fffdf7;
+    border-top: 10px solid var(--modal-color, var(--accent));
+    box-shadow: 0 10px 0 rgba(0,0,0,.15), 0 24px 50px rgba(0,0,0,.35);
+    border-radius: 16px;
+    max-width: 580px; width: 100%; max-height: 80vh; overflow-y: auto;
+    padding: 30px; position: relative; animation: pop .3s cubic-bezier(.2,1.4,.4,1);
+  }
+  @keyframes pop { from { transform: scale(.8) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  #modal h2 { color: var(--modal-color, var(--accent)); margin-bottom: 14px; letter-spacing: 3px; font-weight: 900; }
+  #modal .content { font-size: 14px; line-height: 1.75; color: #333; }
+  #modal .content h3 { color: #b85c00; margin: 15px 0 4px; font-size: 14px; }
+  #modal .content ul { margin: 6px 0 6px 20px; }
+  #modal .content a { color: #0277bd; }
+  #modalClose { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #888; font-size: 22px; cursor: pointer; }
+  #modal .hint { margin-top: 16px; font-size: 11px; opacity: .5; }
+
+  /* touch controls */
+  #controls {
+    position: fixed; bottom: 18px; left: 0; right: 0;
+    display: none; justify-content: space-between; padding: 0 24px;
+    z-index: 20; user-select: none;
+  }
+  .ctlGroup { display: flex; gap: 10px; }
+  #controls button {
+    width: 66px; height: 66px; border-radius: 50%;
+    background: rgba(255,255,255,.9); border: none;
+    color: #444; font-size: 24px; touch-action: manipulation;
+    box-shadow: 0 4px 0 rgba(0,0,0,.2);
+  }
+  #controls button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.2); }
+  @media (pointer: coarse) { #controls { display: flex; } }
+
+  #help {
+    position: fixed; bottom: 10px; left: 0; right: 0; text-align: center;
+    font-size: 11px; color: rgba(255,255,255,.85); text-shadow: 0 1px 2px rgba(0,0,0,.4);
+    z-index: 5; pointer-events: none; letter-spacing: 1px;
+  }
+  @media (pointer: coarse) { #help { display: none; } }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <h1>ШИНЭБАЯР ДАВААСҮРЭН</h1>
+  <div id="chips"></div>
+  <div id="winBanner">★ Та бүх бүсэд зочиллоо — одоо ажил хийлгэхээ л шийдэх үлдлээ! 😎 ★</div>
+</div>
+
+<button id="soundBtn" title="Дуу">🔊</button>
+
+<div id="intro">
+  <h2>🧱 LEGO 3D ТАНИЛЦУУЛГА</h2>
+  <p>LEGO хотын дундуур машинаа жолоодоод<br>өнгөт бүсүүд рүү очоорой.<br>
+  Бүс бүр миний тухай нэг түүх өгүүлнэ.<br><br>
+  ⌨️ Сум / WASD — жолоодох · 📱 Утсан дээр — дэлгэцийн товчнууд</p>
+  <button id="startBtn">ЭХЛЭХ</button>
+</div>
+
+<div id="overlay">
+  <div id="modal">
+    <button id="modalClose">✕</button>
+    <h2 id="modalTitle"></h2>
+    <div class="content" id="modalBody"></div>
+    <p class="hint">ESC эсвэл ✕ дарж буцна</p>
+  </div>
+</div>
+
+<div id="controls">
+  <div class="ctlGroup">
+    <button data-k="left">⟲</button>
+    <button data-k="right">⟳</button>
+  </div>
+  <div class="ctlGroup">
+    <button data-k="back">▼</button>
+    <button data-k="fwd">▲</button>
+  </div>
+</div>
+
+<div id="help">Сум / WASD — жолоодох · Өнгөт бүс рүү очиж мэдээлэл үзнэ</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+/* ════════════════════════════════════════════════
+   CV МЭДЭЭЛЭЛ — энд засна
+   ════════════════════════════════════════════════ */
+const CV_DATA = {
+  A: {
+    title: "НАМТАР", color: "#e3000b", label: "Намтар",
+    html: `
+      <p>Сайн уу, би <strong>Шинэбаяр Даваасүрэн</strong> 👋</p>
+      <p>Миний хамгийн том давуу тал — <strong>сурах хурд</strong>. Шинэ хэл, шинэ технологи, танил бус систем... юу ч байсан хамаагүй, сурчихаад л ажлаа хийчихдэг.</p>
+      <p>2020 оноос хойш программистаар тасралтгүй хөгжиж байгаа бөгөөд ажил хоорондын завсарлагааг ч сул өнгөрөөдөггүй — гэртээ өөрийн төслүүдээ хийж, ур чадвараа үргэлж ирлэж байдаг.</p>
+      <p>Таны өмнө байгаа энэ LEGO ертөнц ч гэсэн тэр сониуч зангийн минь нэг жишээ 🧱</p>`
+  },
+  S: {
+    title: "УР ЧАДВАР", color: "#0288d1", label: "Чадвар",
+    html: `
+      <h3>💻 Программчлал — хязгааргүй</h3>
+      <ul><li>Ямар ч хэл: JavaScript, TypeScript, Python, Java, C#, PHP, Go... нэрлэсэн бүхэн дээр ажиллана</li><li>Ямар ч өгөгдлийн сан: MySQL, PostgreSQL, MongoDB, Oracle — SQL ч бай, NoSQL ч бай, бүгд</li><li>Шинэ framework, шинэ технологи — ямар ч асуудалгүй, шууд ажиллаад явна</li></ul>
+      <h3>🤖 AI — миний хүчирхэг зэвсэг</h3>
+      <ul><li>AI хэрэгслүүдийг ажилдаа маш сайн ашиглаж, бүтээмжээ хэд дахин өсгөдөг</li></ul>
+      <h3>🤝 Харилцаа</h3>
+      <ul><li>Хэрэглэгч, захиалагчтай ойлголцож, хүссэнийг нь код болгож чаддаг</li></ul>
+      <h3>🌐 Англи хэл</h3>
+      <ul><li>Бичгээр — сайн · Яриагаар — дунд</li></ul>`
+  },
+  E: {
+    title: "ТУРШЛАГА", color: "#388e3c", label: "Туршлага",
+    html: `
+      <h3>Sodon Solution — Программист</h3>
+      <p>4 жил</p>
+      <ul><li>Жижигээс том хүртэлх олон системийг эхнээс нь дуустал хөгжүүлсэн</li><li>Захиалагчтай шууд харилцаж, шаардлагыг бодит шийдэл болгож сурсан газар</li></ul>
+      <h3>MCS · M Bank — Программист</h3>
+      <p>6 сар</p>
+      <ul><li>Банкны түвшний өндөр стандарттай орчинд системийн хөгжүүлэлт хийсэн</li></ul>
+      <h3>Хувийн төслүүд</h3>
+      <p>2020 оноос хойш</p>
+      <ul><li>Чөлөөт цаг бүрээ шинэ санаа турших, өөрийн бүтээл хийхэд зарцуулдаг</li></ul>`
+  },
+  P: {
+    title: "ТӨСЛҮҮД", color: "#f57c00", label: "Төслүүд",
+    html: `
+      <p>ERP-ээс эхлээд GPS, камер хяналт, тоног төхөөрөмжийн систем хүртэл — <strong>хийгээд үзээгүй төрөл бараг үгүй</strong>.</p>
+      <h3>🏢 ERP, бизнес системүүд</h3>
+      <p>Байгууллагын үйл ажиллагааг бүхэлд нь автоматжуулсан томоохон системүүд.</p>
+      <h3>📡 GPS, байршил хянах системүүд</h3>
+      <p>Тээврийн хэрэгсэл, обьектын байршлыг бодит цагт хянадаг шийдлүүд.</p>
+      <h3>📹 Камер хяналтын системүүд</h3>
+      <p>Хяналтын камертай холбогдож, бодит цагийн мониторинг хийдэг системүүд.</p>
+      <h3>🌐 Online / Offline системүүд</h3>
+      <p>Вэб дээр ч, интернэтгүй орчинд ч тасралтгүй ажилладаг шийдлүүд.</p>
+      <h3>⚙️ Тоног төхөөрөмжийн интеграц</h3>
+      <p>Төрөл бүрийн төхөөрөмж, hardware-тэй шууд холбогддог системүүд.</p>
+      <h3>🏦 Банк, санхүүгийн систем</h3>
+      <p>M Bank-д банкны системийн хөгжүүлэлтэд оролцсон.</p>
+      <h3>📱 Утасны аппликейшнууд</h3>
+      <p>Хөзрийн тоглоом, зээлийн апп зэрэг олон төрлийн мобайл апп.</p>
+      <p><em>...мөн эдгээрээс гадна арвин том жижиг төсөл бий.</em></p>`
+  },
+  C: {
+    title: "ХОЛБОО БАРИХ", color: "#7b1fa2", label: "Холбоо",
+    html: `
+      <p>📧 <a href="mailto:shinebayar.davaasuren@gmail.com">shinebayar.davaasuren@gmail.com</a></p>
+      <p>📍 Улаанбаатар, Монгол</p>
+      <p>Хамтран ажиллах саналаа имэйлээр илгээгээрэй — хурдан хариулна 😉</p>`
+  }
+};
+
+const ZONES = [
+  { key: 'A', x:   0, z: -55 },
+  { key: 'S', x:  60, z: -20 },
+  { key: 'E', x:  45, z:  50 },
+  { key: 'P', x: -45, z:  50 },
+  { key: 'C', x: -60, z: -20 }
+];
+const ZONE_R = 9;
+const WORLD_R = 110;
+
+/* LEGO өнгөнүүд */
+const LEGO = {
+  red: 0xe3000b, yellow: 0xffd500, blue: 0x0061c2, green: 0x00a850,
+  orange: 0xff7f00, white: 0xf4f4f4, grey: 0x9ba19d, darkgrey: 0x5b6770,
+  brown: 0x6b4423, lime: 0x9aca3c, plate: 0x3eb449
+};
+function plastic(color) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.05 });
+}
+
+/* мөргөлтийн биетүүд */
+const solids = []; /* хатуу — машин зогсоно */
+const props = [];  /* хөнгөн — мөргөвөл унана */
+
+/* ════════════════════ renderer & scene ════════════════════ */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x9fd9f5, 130, 340);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 700);
+camera.position.set(0, 30, 35);
+
+scene.add(new THREE.HemisphereLight(0xcfeaff, 0x7aa860, 0.85));
+const sun = new THREE.DirectionalLight(0xfff4d6, 1.05);
+sun.position.set(70, 120, 40);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -150; sun.shadow.camera.right = 150;
+sun.shadow.camera.top = 150; sun.shadow.camera.bottom = -150;
+sun.shadow.camera.far = 400;
+scene.add(sun);
+
+/* нар */
+const sunBall = new THREE.Mesh(
+  new THREE.SphereGeometry(14, 20, 20),
+  new THREE.MeshBasicMaterial({ color: 0xfff176 })
+);
+sunBall.position.set(180, 150, 80);
+scene.add(sunBall);
+
+/* ════════════════════ LEGO baseplate ════════════════════ */
+const plate = new THREE.Mesh(
+  new THREE.CylinderGeometry(WORLD_R + 70, WORLD_R + 70, 2, 64),
+  plastic(LEGO.plate)
+);
+plate.position.y = -1;
+plate.receiveShadow = true;
+scene.add(plate);
+
+/* товруунууд (studs) — instanced */
+{
+  const spacing = 6;
+  const positions = [];
+  for (let x = -WORLD_R - 24; x <= WORLD_R + 24; x += spacing) {
+    for (let z = -WORLD_R - 24; z <= WORLD_R + 24; z += spacing) {
+      if (Math.hypot(x, z) > WORLD_R + 24) continue;
+      positions.push([x, z]);
+    }
+  }
+  const studGeo = new THREE.CylinderGeometry(1.7, 1.7, 0.7, 14);
+  const studMat = plastic(0x35a03f);
+  const inst = new THREE.InstancedMesh(studGeo, studMat, positions.length);
+  const m = new THREE.Matrix4();
+  positions.forEach(([x, z], i) => {
+    m.makeTranslation(x, 0.35, z);
+    inst.setMatrixAt(i, m);
+  });
+  scene.add(inst);
+}
+
+/* хилийн LEGO хана */
+{
+  const wallColors = [LEGO.red, LEGO.yellow, LEGO.blue, LEGO.white];
+  const n = 44;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const r = WORLD_R + 6;
+    const brick = new THREE.Mesh(new THREE.BoxGeometry(14, 5, 4), plastic(wallColors[i % 4]));
+    brick.position.set(Math.cos(a) * r, 2.5, Math.sin(a) * r);
+    brick.rotation.y = -a + Math.PI / 2;
+    brick.castShadow = true;
+    scene.add(brick);
+  }
+}
+
+/* саарал замууд төвөөс бүс рүү */
+for (const zn of ZONES) {
+  const len = Math.hypot(zn.x, zn.z) - ZONE_R;
+  const road = new THREE.Mesh(
+    new THREE.BoxGeometry(6, 0.3, len),
+    plastic(LEGO.grey)
+  );
+  road.rotation.y = Math.atan2(zn.x, zn.z);
+  road.position.set(zn.x / 2 * (len / (len + ZONE_R)), 0.15, zn.z / 2 * (len / (len + ZONE_R)));
+  road.receiveShadow = true;
+  scene.add(road);
+}
+
+/* LEGO байшингууд */
+function legoHouse(x, z, color, scale) {
+  const g = new THREE.Group();
+  const w = 10 * scale, d = 8 * scale, h = 6 * scale;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), plastic(color));
+  body.position.y = h / 2;
+  body.castShadow = true;
+  g.add(body);
+  /* дээвэр (пирамид) */
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.78, h * 0.7, 4), plastic(LEGO.darkgrey));
+  roof.position.y = h + h * 0.35;
+  roof.rotation.y = Math.PI / 4;
+  roof.castShadow = true;
+  g.add(roof);
+  /* цонх */
+  const winMat = plastic(0xbbe6ff);
+  for (const sx of [-w * 0.25, w * 0.25]) {
+    const win = new THREE.Mesh(new THREE.BoxGeometry(w * 0.22, h * 0.3, 0.4), winMat);
+    win.position.set(sx, h * 0.55, d / 2 + 0.1);
+    g.add(win);
+  }
+  /* хаалга */
+  const door = new THREE.Mesh(new THREE.BoxGeometry(w * 0.2, h * 0.45, 0.4), plastic(LEGO.brown));
+  door.position.set(0, h * 0.22, d / 2 + 0.1);
+  g.add(door);
+  g.position.set(x, 0, z);
+  g.rotation.y = Math.atan2(-x, -z); /* төв рүү харна */
+  scene.add(g);
+  solids.push({ x, z, r: 7 * scale });
+}
+{
+  const houseColors = [LEGO.red, LEGO.yellow, LEGO.blue, LEGO.white, LEGO.orange];
+  let placed = 0, guard = 0;
+  while (placed < 18 && guard < 400) {
+    guard++;
+    const a = Math.random() * Math.PI * 2;
+    const r = 35 + Math.random() * (WORLD_R - 48);
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (ZONES.some(zn => Math.hypot(zn.x - x, zn.z - z) < ZONE_R + 16)) continue;
+    if (Math.hypot(x, z) < 22) continue;
+    legoHouse(x, z, houseColors[placed % houseColors.length], 0.8 + Math.random() * 0.7);
+    placed++;
+  }
+}
+
+/* LEGO мод */
+function legoTree(x, z) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 3, 8), plastic(LEGO.brown));
+  trunk.position.y = 1.5;
+  trunk.castShadow = true;
+  g.add(trunk);
+  const greens = [3.2, 2.4, 1.5];
+  greens.forEach((r, i) => {
+    const lvl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1.8, 10), plastic(i % 2 ? LEGO.lime : LEGO.green));
+    lvl.position.y = 3.6 + i * 1.8;
+    lvl.castShadow = true;
+    g.add(lvl);
+  });
+  const stud = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.5, 10), plastic(LEGO.green));
+  stud.position.y = 9.2;
+  g.add(stud);
+  g.position.set(x, 0, z);
+  scene.add(g);
+  solids.push({ x, z, r: 2.2 });
+}
+{
+  let placed = 0, guard = 0;
+  while (placed < 8 && guard < 300) {
+    guard++;
+    const a = Math.random() * Math.PI * 2;
+    const r = 26 + Math.random() * (WORLD_R - 36);
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (ZONES.some(zn => Math.hypot(zn.x - x, zn.z - z) < ZONE_R + 10)) continue;
+    if (Math.hypot(x, z) < 18) continue;
+    legoTree(x, z);
+    placed++;
+  }
+}
+
+/* ════ хөнгөн эд зүйлс — мөргөвөл бодитоор унана ════ */
+function addProp(g, x, z, r) {
+  g.position.set(x, 0, z);
+  g.rotation.y = Math.random() * Math.PI * 2;
+  scene.add(g);
+  props.push({ g, r, knocked: false, vx: 0, vy: 0, vz: 0, ax: 0, ay: 0, az: 0 });
+}
+function prChair(color) {
+  const g = new THREE.Group();
+  const m = plastic(color);
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.25, 1.4), m);
+  seat.position.y = 1; seat.castShadow = true; g.add(seat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.25), m);
+  back.position.set(0, 1.8, -0.6); back.castShadow = true; g.add(back);
+  for (const [lx, lz] of [[-0.55, -0.55], [0.55, -0.55], [-0.55, 0.55], [0.55, 0.55]]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1, 0.2), m);
+    leg.position.set(lx, 0.5, lz); g.add(leg);
+  }
+  return { g, r: 1.4 };
+}
+function prTable() {
+  const g = new THREE.Group();
+  const m = plastic(LEGO.brown);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.3, 2.6), m);
+  top.position.y = 1.5; top.castShadow = true; g.add(top);
+  for (const [lx, lz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.5, 0.25), m);
+    leg.position.set(lx, 0.75, lz); g.add(leg);
+  }
+  return { g, r: 1.9 };
+}
+function prBench() {
+  const g = new THREE.Group();
+  const m = plastic(LEGO.brown);
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.3, 1.1), m);
+  seat.position.y = 0.95; seat.castShadow = true; g.add(seat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.1, 0.25), m);
+  back.position.set(0, 1.7, -0.45); g.add(back);
+  for (const lx of [-1.3, 1.3]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.95, 1), m);
+    leg.position.set(lx, 0.47, 0); g.add(leg);
+  }
+  return { g, r: 1.8 };
+}
+function prCone() {
+  const g = new THREE.Group();
+  const c = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 12), plastic(LEGO.orange));
+  c.position.y = 0.9; c.castShadow = true; g.add(c);
+  const b = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.2, 1.3), plastic(LEGO.orange));
+  b.position.y = 0.1; g.add(b);
+  return { g, r: 1 };
+}
+function prBarrel(color) {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 1.7, 12), plastic(color));
+  b.position.y = 0.85; b.castShadow = true; g.add(b);
+  return { g, r: 1.1 };
+}
+function prLamp() {
+  const g = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 4.5, 8), plastic(LEGO.darkgrey));
+  pole.position.y = 2.25; pole.castShadow = true; g.add(pole);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 10), plastic(LEGO.yellow));
+  ball.position.y = 4.7; g.add(ball);
+  return { g, r: 0.9 };
+}
+function prBrickLoose(color) {
+  const g = new THREE.Group();
+  const b = legoBrick(color);
+  b.position.y = 0.8;
+  g.add(b);
+  return { g, r: 2.3 };
+}
+{
+  const makers = [
+    () => prChair(LEGO.red), () => prChair(LEGO.blue), () => prChair(LEGO.yellow),
+    () => prTable(), () => prBench(), () => prCone(),
+    () => prBarrel(LEGO.blue), () => prBarrel(LEGO.green),
+    () => prLamp(),
+    () => prBrickLoose(LEGO.yellow), () => prBrickLoose(LEGO.red), () => prBrickLoose(LEGO.blue)
+  ];
+  let placed = 0, guard = 0;
+  while (placed < 48 && guard < 700) {
+    guard++;
+    const a = Math.random() * Math.PI * 2;
+    const r = 16 + Math.random() * (WORLD_R - 22);
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (ZONES.some(zn => Math.hypot(zn.x - x, zn.z - z) < ZONE_R + 4)) continue;
+    if (solids.some(s => Math.hypot(s.x - x, s.z - z) < s.r + 2.5)) continue;
+    const p = makers[placed % makers.length]();
+    addProp(p.g, x, z, p.r);
+    placed++;
+  }
+  /* зам дагуу конусууд */
+  for (const zn of ZONES) {
+    for (const f of [0.35, 0.6]) {
+      const c = prCone();
+      addProp(c.g, zn.x * f + 4, zn.z * f - 4, c.r);
+    }
+  }
+}
+
+/* үүлс — цагаан LEGO блокууд */
+const clouds = [];
+for (let i = 0; i < 7; i++) {
+  const g = new THREE.Group();
+  const n = 3 + Math.floor(Math.random() * 3);
+  for (let j = 0; j < n; j++) {
+    const b = new THREE.Mesh(
+      new THREE.BoxGeometry(8 + Math.random() * 6, 3.5, 6),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 })
+    );
+    b.position.set(j * 5 - n * 2.5, (j % 2) * 1.6, Math.random() * 3);
+    g.add(b);
+  }
+  g.userData = {
+    angle: Math.random() * Math.PI * 2,
+    r: 50 + Math.random() * 90,
+    speed: 0.008 + Math.random() * 0.01,
+    y: 38 + Math.random() * 22
+  };
+  scene.add(g);
+  clouds.push(g);
+}
+
+/* шошго (Cyrillic OK) */
+function makeTextSprite(text, color) {
+  const cv = document.createElement('canvas');
+  cv.width = 512; cv.height = 128;
+  const c2 = cv.getContext('2d');
+  c2.font = "900 58px 'Exo 2', 'Courier New', sans-serif";
+  c2.textAlign = 'center';
+  c2.textBaseline = 'middle';
+  c2.lineWidth = 10;
+  c2.strokeStyle = '#ffffff';
+  c2.strokeText(text, 256, 64);
+  c2.fillStyle = color;
+  c2.fillText(text, 256, 64);
+  const tex = new THREE.CanvasTexture(cv);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+  sp.scale.set(17, 4.2, 1);
+  return sp;
+}
+
+/* 2x4 LEGO блок (бүсийн дээр хөвөгч) */
+function legoBrick(color) {
+  const g = new THREE.Group();
+  const mat = plastic(color);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.6, 2.2), mat);
+  base.castShadow = true;
+  g.add(base);
+  for (let ix = 0; ix < 4; ix++) {
+    for (let iz = 0; iz < 2; iz++) {
+      const stud = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.4, 12), mat);
+      stud.position.set(-1.65 + ix * 1.1, 1.0, -0.55 + iz * 1.1);
+      g.add(stud);
+    }
+  }
+  return g;
+}
+
+/* бүсүүд */
+const zoneObjs = [];
+for (const zn of ZONES) {
+  const info = CV_DATA[zn.key];
+  const col = new THREE.Color(info.color);
+  const g = new THREE.Group();
+
+  /* өнгөт дугуй plate */
+  const platform = new THREE.Mesh(
+    new THREE.CylinderGeometry(ZONE_R, ZONE_R, 0.8, 36),
+    plastic(col.getHex())
+  );
+  platform.position.y = 0.4;
+  platform.receiveShadow = true;
+  g.add(platform);
+
+  /* plate-ийн товруунууд */
+  for (let sx = -6; sx <= 6; sx += 3) {
+    for (let sz = -6; sz <= 6; sz += 3) {
+      if (Math.hypot(sx, sz) > ZONE_R - 1.5) continue;
+      const stud = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.5, 12), plastic(col.getHex()));
+      stud.position.set(sx, 1.05, sz);
+      g.add(stud);
+    }
+  }
+
+  /* LEGO хаалга (gate) */
+  const pillarMat = plastic(col.getHex());
+  for (const sx of [-5.5, 5.5]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(2, 9, 2), pillarMat);
+    p.position.set(sx, 4.5, 0);
+    p.castShadow = true;
+    g.add(p);
+    const pstud = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.5, 10), pillarMat);
+    pstud.position.set(sx, 9.25, 0);
+    g.add(pstud);
+    solids.push({ x: zn.x + sx, z: zn.z, r: 1.7 });
+  }
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(13, 2, 2.2), pillarMat);
+  beam.position.y = 10;
+  beam.castShadow = true;
+  g.add(beam);
+
+  /* хөвөгч эргэлдэгч блок */
+  const brick = legoBrick(col.getHex());
+  brick.position.y = 14;
+  g.add(brick);
+
+  const label = makeTextSprite(info.label.toUpperCase(), info.color);
+  label.position.y = 18.5;
+  g.add(label);
+
+  g.position.set(zn.x, 0, zn.z);
+  scene.add(g);
+  zoneObjs.push({ ...zn, group: g, label, brick });
+}
+
+/* ════════════════════ LEGO машин ════════════════════ */
+const car = new THREE.Group();
+{
+  const red = plastic(LEGO.red);
+  const dark = plastic(0x2b2b2b);
+
+  /* шасси */
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.5, 4.8), plastic(LEGO.darkgrey));
+  chassis.position.y = 0.65;
+  chassis.castShadow = true;
+  car.add(chassis);
+
+  /* их бие */
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.8, 4.2), red);
+  body.position.y = 1.3;
+  body.castShadow = true;
+  car.add(body);
+
+  /* капот дээрх товруу */
+  for (const [sx, sz] of [[-0.55, 1.4], [0.55, 1.4], [-0.55, -1.6], [0.55, -1.6]]) {
+    const stud = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.3, 10), red);
+    stud.position.set(sx, 1.85, sz);
+    car.add(stud);
+  }
+
+  /* салхины шил + бүхээг */
+  const glass = new THREE.Mesh(
+    new THREE.BoxGeometry(1.9, 0.85, 0.25),
+    new THREE.MeshStandardMaterial({ color: 0xbfe8ff, roughness: 0.1, transparent: true, opacity: 0.7 })
+  );
+  glass.position.set(0, 2.1, 0.7);
+  car.add(glass);
+
+  /* жолооч minifig толгой 😊 */
+  const headTex = (() => {
+    const cv = document.createElement('canvas');
+    cv.width = 128; cv.height = 64;
+    const c2 = cv.getContext('2d');
+    c2.fillStyle = '#ffd500';
+    c2.fillRect(0, 0, 128, 64);
+    c2.fillStyle = '#2b2b2b';
+    c2.beginPath(); c2.arc(44, 24, 4, 0, Math.PI * 2); c2.fill();
+    c2.beginPath(); c2.arc(84, 24, 4, 0, Math.PI * 2); c2.fill();
+    c2.lineWidth = 4; c2.strokeStyle = '#2b2b2b';
+    c2.beginPath(); c2.arc(64, 32, 14, 0.25 * Math.PI, 0.75 * Math.PI); c2.stroke();
+    return new THREE.CanvasTexture(cv);
+  })();
+  const head = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.42, 0.42, 0.75, 16),
+    new THREE.MeshStandardMaterial({ map: headTex, roughness: 0.35 })
+  );
+  head.position.set(0, 2.35, -0.1);
+  head.rotation.y = Math.PI; /* инээмсэглэл урагшаа */
+  car.add(head);
+  const headStud = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.18, 10), plastic(LEGO.yellow));
+  headStud.position.set(0, 2.8, -0.1);
+  car.add(headStud);
+
+  /* дугуйнууд */
+  car.userData.wheels = [];
+  for (const [wx, wz] of [[-1.3, 1.5], [1.3, 1.5], [-1.3, -1.5], [1.3, -1.5]]) {
+    const wg = new THREE.Group();
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.5, 14), dark);
+    tire.rotation.z = Math.PI / 2;
+    tire.castShadow = true;
+    wg.add(tire);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.55, 10), plastic(LEGO.grey));
+    hub.rotation.z = Math.PI / 2;
+    wg.add(hub);
+    wg.position.set(wx, 0.62, wz);
+    car.add(wg);
+    car.userData.wheels.push(wg);
+  }
+
+  /* гэрэл */
+  const lightMat = new THREE.MeshBasicMaterial({ color: 0xfffde0 });
+  for (const sx of [-0.75, 0.75]) {
+    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.15, 10), lightMat);
+    h.rotation.x = Math.PI / 2;
+    h.position.set(sx, 1.3, 2.15);
+    car.add(h);
+  }
+  const tailMat = new THREE.MeshBasicMaterial({ color: 0xff3344 });
+  for (const sx of [-0.8, 0.8]) {
+    const t = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.12), tailMat);
+    t.position.set(sx, 1.35, -2.12);
+    car.add(t);
+  }
+}
+scene.add(car);
+
+/* тоосны цацрага (хурдлахад) */
+const trail = [];
+for (let i = 0; i < 50; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    color: 0xffffff, transparent: true, opacity: 0, depthWrite: false
+  }));
+  sp.visible = false;
+  sp.userData.life = 0;
+  scene.add(sp);
+  trail.push(sp);
+}
+let trailIdx = 0, trailTick = 0;
+
+/* ════════════════════ удирдлага ════════════════════ */
+const keys = { fwd: false, back: false, left: false, right: false };
+const KEYMAP = {
+  ArrowUp: 'fwd', ArrowDown: 'back', ArrowLeft: 'left', ArrowRight: 'right',
+  w: 'fwd', s: 'back', a: 'left', d: 'right',
+  W: 'fwd', S: 'back', A: 'left', D: 'right',
+  ц: 'fwd', ы: 'back', а: 'left', в: 'right'
+};
+window.addEventListener('keydown', e => {
+  if (KEYMAP[e.key]) { e.preventDefault(); keys[KEYMAP[e.key]] = true; }
+  if (e.key === 'Escape') closeModal();
+});
+window.addEventListener('keyup', e => { if (KEYMAP[e.key]) keys[KEYMAP[e.key]] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+document.querySelectorAll('#controls button').forEach(btn => {
+  const k = btn.dataset.k;
+  const on = e => { e.preventDefault(); keys[k] = true; };
+  const off = () => { keys[k] = false; };
+  btn.addEventListener('touchstart', on, { passive: false });
+  btn.addEventListener('touchend', off);
+  btn.addEventListener('touchcancel', off);
+  btn.addEventListener('mousedown', on);
+  btn.addEventListener('mouseup', off);
+  btn.addEventListener('mouseleave', off);
+});
+
+/* ════════════════════ modal & HUD ════════════════════ */
+const overlay = document.getElementById('overlay');
+const modal = document.getElementById('modal');
+let modalOpen = false;
+const visited = new Set();
+let zoneCooldown = null;
+
+const chips = document.getElementById('chips');
+for (const key of Object.keys(CV_DATA)) {
+  const chip = document.createElement('span');
+  chip.className = 'chip';
+  chip.id = 'chip-' + key;
+  chip.style.setProperty('--chip-color', CV_DATA[key].color);
+  chip.textContent = CV_DATA[key].label;
+  chips.appendChild(chip);
+}
+
+function openZone(key) {
+  const d = CV_DATA[key];
+  document.getElementById('modalTitle').textContent = d.title;
+  document.getElementById('modalBody').innerHTML = d.html;
+  modal.style.setProperty('--modal-color', d.color);
+  overlay.classList.add('open');
+  modalOpen = true;
+  if (!visited.has(key)) {
+    visited.add(key);
+    document.getElementById('chip-' + key).classList.add('visited');
+    if (visited.size === Object.keys(CV_DATA).length) {
+      document.getElementById('winBanner').style.display = 'block';
+    }
+  }
+}
+function closeModal() {
+  if (!modalOpen) return;
+  overlay.classList.remove('open');
+  modalOpen = false;
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+/* ════════════════════ хөдөлгүүрийн дуу ════════════════════ */
+let audioCtx = null, engineGain = null, engineOsc = null, muted = false;
+let screechGain = null, lastThud = 0;
+function initAudio() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    engineOsc = audioCtx.createOscillator();
+    engineOsc.type = 'sawtooth';
+    engineOsc.frequency.value = 50;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 320;
+    engineGain = audioCtx.createGain();
+    engineGain.gain.value = 0;
+    engineOsc.connect(filter).connect(engineGain).connect(audioCtx.destination);
+    engineOsc.start();
+
+    /* дугуйн чахрах дуу (цагаан шуугиан + bandpass) */
+    const noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const noiseSrc = audioCtx.createBufferSource();
+    noiseSrc.buffer = noiseBuf;
+    noiseSrc.loop = true;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 950;
+    bp.Q.value = 1.3;
+    screechGain = audioCtx.createGain();
+    screechGain.gain.value = 0;
+    noiseSrc.connect(bp).connect(screechGain).connect(audioCtx.destination);
+    noiseSrc.start();
+  } catch (e) { /* audio unavailable */ }
+}
+/* мөргөлтийн "бүм" дуу */
+function thud() {
+  if (!audioCtx || muted) return;
+  const now = performance.now();
+  if (now - lastThud < 130) return;
+  lastThud = now;
+  try {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(90, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.16);
+    g.gain.setValueAtTime(0.09, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+    o.connect(g).connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + 0.2);
+  } catch (e) {}
+}
+document.getElementById('soundBtn').addEventListener('click', () => {
+  muted = !muted;
+  document.getElementById('soundBtn').textContent = muted ? '🔇' : '🔊';
+});
+
+/* ════════════════════ физик ════════════════════ */
+let speed = 0;
+let heading = Math.PI;
+const MAX_SPEED = 0.6;
+const ACCEL = 0.013;
+
+let started = false;
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('intro').style.display = 'none';
+  started = true;
+  initAudio();
+});
+
+function update() {
+  const t = Date.now() / 1000;
+
+  /* үргэлж явах амьдрал */
+  for (const z of zoneObjs) {
+    z.brick.rotation.y = t * 0.8 + z.x;
+    z.brick.position.y = 14 + Math.sin(t * 1.6 + z.z) * 0.8;
+    z.label.position.y = 18.5 + Math.sin(t * 1.3 + z.x) * 0.4;
+  }
+  for (const c of clouds) {
+    c.userData.angle += c.userData.speed * 0.016;
+    c.position.set(
+      Math.cos(c.userData.angle) * c.userData.r,
+      c.userData.y,
+      Math.sin(c.userData.angle) * c.userData.r
+    );
+  }
+
+  if (!started || modalOpen) {
+    if (engineGain) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+    return;
+  }
+
+  if (keys.fwd) speed += ACCEL;
+  if (keys.back) speed -= ACCEL * 0.7;
+  speed *= 0.965;
+  speed = Math.max(-MAX_SPEED * 0.5, Math.min(MAX_SPEED, speed));
+
+  const steer = (keys.left ? 1 : 0) - (keys.right ? 1 : 0);
+  /* ухрахад жолоо жинхэнэ машин шиг урвуу эргэнэ */
+  heading += steer * 0.035 * (speed / MAX_SPEED) * 2.2;
+
+  car.position.x += Math.sin(heading) * speed;
+  car.position.z += Math.cos(heading) * speed;
+  car.rotation.y = heading;
+  car.rotation.z = -steer * Math.abs(speed) * 0.22;
+
+  /* хил */
+  const dist = Math.hypot(car.position.x, car.position.z);
+  if (dist > WORLD_R) {
+    car.position.x *= WORLD_R / dist;
+    car.position.z *= WORLD_R / dist;
+    speed *= 0.4;
+  }
+
+  /* хатуу биет мөргөлт — машин зогсоно */
+  const carR = 2.4;
+  for (const s of solids) {
+    const dx = car.position.x - s.x, dz = car.position.z - s.z;
+    const d = Math.hypot(dx, dz);
+    if (d < s.r + carR && d > 0.001) {
+      const push = s.r + carR - d;
+      car.position.x += dx / d * push;
+      car.position.z += dz / d * push;
+      if (Math.abs(speed) > 0.08) thud();
+      speed *= -0.25;
+    }
+  }
+
+  /* хөнгөн эд зүйлс — мөргөвөл унана */
+  for (const p of props) {
+    if (p.knocked) {
+      if (p.vx || p.vy || p.vz || p.ax || p.ay || p.az) {
+        p.g.position.x += p.vx;
+        p.g.position.z += p.vz;
+        p.g.position.y += p.vy;
+        p.vy -= 0.025;
+        p.g.rotation.x += p.ax;
+        p.g.rotation.y += p.ay;
+        p.g.rotation.z += p.az;
+        if (p.g.position.y < 0) {
+          p.g.position.y = 0;
+          p.vy *= -0.3;
+          p.vx *= 0.72; p.vz *= 0.72;
+          p.ax *= 0.55; p.ay *= 0.55; p.az *= 0.55;
+          if (Math.abs(p.vy) < 0.025) {
+            p.vy = 0;
+            if (Math.hypot(p.vx, p.vz) < 0.01) { p.vx = p.vz = p.ax = p.ay = p.az = 0; }
+          }
+        }
+      }
+      continue;
+    }
+    const dx = p.g.position.x - car.position.x, dz = p.g.position.z - car.position.z;
+    const d = Math.hypot(dx, dz);
+    if (d < p.r + carR && Math.abs(speed) > 0.05) {
+      p.knocked = true;
+      const inv = 1 / (d || 1);
+      const k = Math.abs(speed);
+      p.vx = dx * inv * k * 1.5 + Math.sin(heading) * speed * 0.8;
+      p.vz = dz * inv * k * 1.5 + Math.cos(heading) * speed * 0.8;
+      p.vy = k * 1.0 + 0.08;
+      p.ax = (Math.random() - 0.5) * k * 0.8;
+      p.ay = (Math.random() - 0.5) * k * 0.8;
+      p.az = (Math.random() - 0.5) * k * 0.8;
+      speed *= 0.88;
+      thud();
+    }
+  }
+
+  /* дугуй эргэлт */
+  for (const w of car.userData.wheels) w.rotation.x += speed * 1.5;
+
+  /* тоос */
+  trailTick++;
+  if (Math.abs(speed) > 0.15 && trailTick % 3 === 0) {
+    const sp = trail[trailIdx];
+    trailIdx = (trailIdx + 1) % trail.length;
+    sp.position.set(
+      car.position.x - Math.sin(heading) * 2.4 + (Math.random() - 0.5),
+      0.5 + Math.random() * 0.4,
+      car.position.z - Math.cos(heading) * 2.4 + (Math.random() - 0.5)
+    );
+    sp.userData.life = 1;
+    sp.visible = true;
+  }
+  for (const sp of trail) {
+    if (!sp.visible) continue;
+    sp.userData.life -= 0.04;
+    if (sp.userData.life <= 0) { sp.visible = false; continue; }
+    const l = sp.userData.life;
+    sp.scale.set(2 * (1 - l) + 0.6, 2 * (1 - l) + 0.6, 1);
+    sp.material.opacity = l * 0.35;
+  }
+
+  /* хөдөлгүүрийн дуу */
+  if (engineGain && audioCtx) {
+    const target = muted ? 0 : 0.012 + Math.abs(speed) * 0.045;
+    engineGain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.08);
+    engineOsc.frequency.setTargetAtTime(50 + Math.abs(speed) * 170, audioCtx.currentTime, 0.05);
+  }
+
+  /* дугуй чахрах — тоормослох эсвэл хүчтэй эргэхэд */
+  if (screechGain && audioCtx) {
+    const braking = keys.back && speed > 0.18;
+    const hardTurn = steer !== 0 && Math.abs(speed) > MAX_SPEED * 0.72;
+    const sTarget = muted ? 0 : (braking || hardTurn ? 0.05 : 0);
+    screechGain.gain.setTargetAtTime(sTarget, audioCtx.currentTime, 0.05);
+  }
+
+  /* бүс шалгах */
+  let inZone = null;
+  for (const z of zoneObjs) {
+    if (Math.hypot(z.x - car.position.x, z.z - car.position.z) < ZONE_R - 1) { inZone = z; break; }
+  }
+  if (inZone) {
+    if (zoneCooldown !== inZone.key) {
+      zoneCooldown = inZone.key;
+      speed = 0;
+      openZone(inZone.key);
+    }
+  } else {
+    zoneCooldown = null;
+  }
+
+  /* chase cam — машины ард байнга дагана */
+  const camGoal = new THREE.Vector3(
+    car.position.x - Math.sin(heading) * 33,
+    16.5,
+    car.position.z - Math.cos(heading) * 33
+  );
+  camera.position.lerp(camGoal, 0.08);
+  camera.lookAt(car.position.x, 2.2, car.position.z);
+  const fovGoal = 55 + (Math.abs(speed) / MAX_SPEED) * 9;
+  camera.fov += (fovGoal - camera.fov) * 0.05;
+  camera.updateProjectionMatrix();
+}
+
+/* ════════════════════ давталт ба хэмжээ ════════════════════ */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function loop() {
+  update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
